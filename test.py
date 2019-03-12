@@ -9,7 +9,6 @@ import math
 import shelve
 from time import sleep
 import errno
-
 SCOPES = ['https://www.googleapis.com/auth/drive']
 token_expiration_time = math.inf
 access_token = ""

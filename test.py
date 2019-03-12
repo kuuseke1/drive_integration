@@ -16,7 +16,8 @@ access_token = ""
 
 def get_access_token():
     """
-    Gets access token using refresh token and client credentials
+    Gets access token using refresh token and client credentials. When an unexpired access token already exists, return
+    that one.
     """
     global access_token
     global token_expiration_time
@@ -50,6 +51,11 @@ def get_access_token():
 
 
 def download_by_path(path):
+    """
+    Download a file by specified path in drive. Save it to the same location in current directory
+    :param path:
+    :return: nothing
+    """
     search_result = search_by_path(path)
     if search_result is not None:
         url_params = {
@@ -74,7 +80,6 @@ def download_by_path(path):
 
             with open(path, "wb") as f:
                 f.write(r.content)
-            return r.text
         except requests.exceptions.ConnectionError:
             print('Connection error')
             sleep(5)
@@ -87,6 +92,13 @@ def download_by_path(path):
 
 
 def upload_by_path(local_path, target_path, create_path):
+    """
+    Upload a file from local dir to target dir on drive.
+    :param local_path: file location on disk
+    :param target_path: target path for drive
+    :param create_path: boolean, if set to true creates the required path on drive.
+    :return: fileId of uploaded file
+    """
     if create_path is True:
         search_result = search_and_create_folder_path(target_path)
     else:
@@ -132,6 +144,12 @@ def upload_by_path(local_path, target_path, create_path):
 
 
 def create_folder(name, parent_folder_id):
+    """
+    Create a folder in specified parent folder.
+    :param name: folder name
+    :param parent_folder_id: parent folder id
+    :return: fileId of created folder
+    """
     url_params = {
         'supportsTeamDrives': 'true',
         'fields': 'id'
@@ -163,6 +181,11 @@ def create_folder(name, parent_folder_id):
 
 
 def get_children(folder_id):
+    """
+    Get all children of specified folder. Calls get_children_next_page if nextPageToken is populated
+    :param folder_id: fileId of the folder
+    :return: JSON data of the children
+    """
     url_params = {
 
         'supportsTeamDrives': 'true',
@@ -192,6 +215,14 @@ def get_children(folder_id):
 
 
 def get_children_next_page(prev_results, folder_id, page_token):
+    """
+    Get children on next page of results. Works the same way as get_children, except appends children data to existing
+    data and calls itself when nextPageToken is populated
+    :param prev_results: results from the previous page
+    :param folder_id: fileId of the parent folder
+    :param page_token: nextPageToken
+    :return: children with next page of results added to them
+    """
     url_params = {
         'supportsTeamDrives': 'true',
         'includeTeamDriveItems': 'true',
@@ -221,6 +252,12 @@ def get_children_next_page(prev_results, folder_id, page_token):
 
 
 def search_in_folder(folder_id, file_name):
+    """
+    Search a file in folder. Calls get children and loops through them to find specified file name
+    :param folder_id: parent folder id
+    :param file_name: file (or folder) name to search
+    :return: if found, the child id, None otherwise
+    """
     print('called search for ' + file_name)
     children = get_children(folder_id)['files']
     for child in children:
@@ -231,7 +268,8 @@ def search_in_folder(folder_id, file_name):
 
 def search_and_create_folder_path(path):
     """
-    Search and create folders to match given path if needed.
+    Search and create folders to match given path if needed. Also checks cache for previously searched folder paths, if
+    path not in cache then continues with the search and adds result to cache
     :param path: path to be created
     :return: last folder id
     """
@@ -291,11 +329,13 @@ def search_by_path(path):
 
 
 def write_to_cache(path, value):
+    """ Write path: id to cache """
     with shelve.open('cache') as cache:
         cache[path] = value
 
 
 def check_cache(path):
+    """ Check cache for specified key """
     with shelve.open('cache') as cache:
         if path in cache:
             return cache[path]
